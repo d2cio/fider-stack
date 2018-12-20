@@ -1,0 +1,51 @@
+version: '1.0'
+services:
+  - name: db
+    type: postgres
+    version: 9.6
+    configuration: StandAlone
+    ports:
+      - 5432
+    username: fider
+    database: fider
+    userPassword: null
+    remoteAccess: false
+    deployTo:
+      - fider
+
+  - name: fider
+    type: docker
+    image: getfider/fider
+    version: stable
+    ports:
+      - 3000
+    remoteAccess: false
+    env:
+      GO_ENV: production
+      DATABASE_URL: "postgres://fider:{{=service('db').get('userPassword')}}@{{=service('db').getMasterAlias()}}:5432/fider?sslmode=disable"
+      JWT_SECRET: "{{=randomString(64)}}"
+      EMAIL_NOREPLY: null
+      EMAIL_SMTP_HOST: null
+      EMAIL_SMTP_PORT: null
+      EMAIL_SMTP_USERNAME: null
+      EMAIL_SMTP_PASSWORD: null
+    deployTo:
+      - fider
+
+  - name: web
+    type: nginx
+    version: 1.15
+    ports:
+      - 80
+      - 443
+    remoteAccess: true
+    serviceFiles:
+      - name: fider
+    deployTo:
+      - fider
+
+hosts:
+  - name: fider
+    requirements:
+      cores: 1
+      memory: 1
